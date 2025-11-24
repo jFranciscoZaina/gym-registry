@@ -56,10 +56,13 @@ export default function DashboardPage() {
   const [sortKey, setSortKey] = useState<"name" | "plan" | "paid" | "debt" | "due">("name")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
+  const [status, setStatus] = useState<"active" | "inactive">("active")
+
+
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/clients")
+      const res = await fetch(`/api/clients?status=${status}`)
       if (!res.ok) throw new Error("Error cargando clientes")
       const data: ClientRow[] = await res.json()
       setClients(data)
@@ -70,7 +73,8 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [status])
+  
 
   useEffect(() => {
     fetchClients()
@@ -127,6 +131,32 @@ export default function DashboardPage() {
       <main className="px-8 py-6">
         <SearchBar value={searchTerm} onChange={setSearchTerm} />
         <StatsGrid {...stats} />
+{/* TABS Active / Inactive */}
+<div className="mb-3 flex items-center gap-2">
+  <button
+    onClick={() => setStatus("active")}
+    className={`rounded-md px-4 py-2 text-sm font-medium border transition
+      ${
+        status === "active"
+          ? "bg-slate-900 text-white border-slate-900"
+          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+      }`}
+  >
+    Activos
+  </button>
+
+  <button
+    onClick={() => setStatus("inactive")}
+    className={`rounded-md px-4 py-2 text-sm font-medium border transition
+      ${
+        status === "inactive"
+          ? "bg-slate-900 text-white border-slate-900"
+          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+      }`}
+  >
+    Inactivos
+  </button>
+</div>
 
         <ClientsTable
           clients={sortedClients}
