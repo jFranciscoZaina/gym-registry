@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import type { ClientRow, PlanType } from "../page"
 import { PLANS } from "../page"
 import RangeCalendar, { type DateRangeValue } from "./RangeCalendar"
+import ClientSearchSelect from "./ClientSearchSelect"
 
 type Props = {
   clients: ClientRow[]
@@ -29,9 +30,14 @@ const toISO = (d?: Date) =>
         .slice(0, 10)
     : ""
 
-const parseISO = (s?: string | null) => (s ? new Date(s + "T00:00:00") : undefined)
+const parseISO = (s?: string | null) =>
+  s ? new Date(s + "T00:00:00") : undefined
 
-export default function NewPaymentModal({ clients, onClose, onCreated }: Props) {
+export default function NewPaymentModal({
+  clients,
+  onClose,
+  onCreated,
+}: Props) {
   const [clientId, setClientId] = useState("")
   const [plan, setPlan] = useState<PlanType | "">("")
   const [amount, setAmount] = useState<number | "">("")
@@ -64,7 +70,6 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
       setPlan("Pago deuda")
       setDiscount(0)
 
-      // We try to fetch last payment with debt to lock calendar
       try {
         const res = await fetch(`/api/payments?clientId=${id}`)
         if (res.ok) {
@@ -119,14 +124,15 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
     if (plan !== "Pago deuda") return
 
     const baseDebt = selectedClientDebt || 0
-    const disc = typeof discount === "number" ? discount : Number(discount || 0)
+    const disc =
+      typeof discount === "number" ? discount : Number(discount || 0)
 
     // amount auto = baseDebt - discount (clamped)
     const autoAmount = Math.max(baseDebt - disc, 0)
 
     setAmount((prev) => {
-      const prevNum = typeof prev === "number" ? prev : Number(prev || 0)
-      // if user hasn't manually overridden (or matches old auto), keep auto
+      const prevNum =
+        typeof prev === "number" ? prev : Number(prev || 0)
       if (prev === "" || prevNum === autoAmount || prevNum > baseDebt) {
         return autoAmount
       }
@@ -141,7 +147,8 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
   }, [plan, amount, discount, selectedClientDebt])
 
   const rangeLabel = useMemo(() => {
-    if (!dateRange.from || !dateRange.to) return "Seleccioná un rango de fechas"
+    if (!dateRange.from || !dateRange.to)
+      return "Seleccioná un rango de fechas"
     const f = dateRange.from.toLocaleDateString("es-AR")
     const t = dateRange.to.toLocaleDateString("es-AR")
     return `Este pago cubre del ${f} al ${t}`
@@ -167,7 +174,8 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
       typeof amount === "number" ? amount : Number(amount || 0)
     const numericDiscount =
       typeof discount === "number" ? discount : Number(discount || 0)
-    const numericDebt = typeof debt === "number" ? debt : Number(debt || 0)
+    const numericDebt =
+      typeof debt === "number" ? debt : Number(debt || 0)
 
     setLoading(true)
 
@@ -192,7 +200,9 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
       onClose()
     } catch (err) {
       console.error(err)
-      alert(err instanceof Error ? err.message : "Error registrando pago")
+      alert(
+        err instanceof Error ? err.message : "Error registrando pago"
+      )
     } finally {
       setLoading(false)
     }
@@ -220,24 +230,11 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
         <div className="p-6 bg-white">
           <div className="space-y-6">
             {/* Persona */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-900">
-                Persona
-              </label>
-              <select
-                className="w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-                value={clientId}
-                onChange={(e) => handleClientChange(e.target.value)}
-                required
-              >
-                <option value="">Seleccionar cliente...</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.email ? `— ${c.email}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <ClientSearchSelect
+              clients={clients}
+              selectedClientId={clientId}
+              onSelectClient={handleClientChange}
+            />
 
             {/* Plan */}
             <div className="space-y-2">
@@ -249,7 +246,9 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
                   hasDebt ? "opacity-70 cursor-not-allowed" : ""
                 }`}
                 value={plan}
-                onChange={(e) => handlePlanChange(e.target.value as PlanType)}
+                onChange={(e) =>
+                  handlePlanChange(e.target.value as PlanType)
+                }
                 required
                 disabled={hasDebt}
               >
@@ -299,7 +298,9 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
                 value={discount}
                 onChange={(e) =>
-                  setDiscount(e.target.value ? Number(e.target.value) : "")
+                  setDiscount(
+                    e.target.value ? Number(e.target.value) : ""
+                  )
                 }
                 placeholder="Descuento aplicado (opcional)"
                 min={0}
@@ -338,7 +339,8 @@ export default function NewPaymentModal({ clients, onClose, onCreated }: Props) 
 
           {calendarLocked && (
             <p className="mt-1 text-xs text-slate-500">
-              Este rango pertenece a una deuda previa y no puede modificarse.
+              Este rango pertenece a una deuda previa y no puede
+              modificarse.
             </p>
           )}
         </div>
