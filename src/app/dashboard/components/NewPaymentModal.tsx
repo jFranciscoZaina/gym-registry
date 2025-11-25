@@ -26,8 +26,8 @@ type PaymentRow = {
 const toISO = (d?: Date) =>
   d
     ? new Date(d.getFullYear(), d.getMonth(), d.getDate())
-        .toISOString()
-        .slice(0, 10)
+      .toISOString()
+      .slice(0, 10)
     : ""
 
 const parseISO = (s?: string | null) =>
@@ -47,6 +47,9 @@ export default function NewPaymentModal({
 
   const [selectedClientDebt, setSelectedClientDebt] = useState(0)
 
+  const [markers, setMarkers] = useState<Record<string, "paid" | "debt">>({})
+
+
   // === Range calendar
   const [dateRange, setDateRange] = useState<DateRangeValue>({})
   const [calendarLocked, setCalendarLocked] = useState(false)
@@ -59,60 +62,88 @@ export default function NewPaymentModal({
   const hasDebt = (selectedClient?.currentDebt ?? 0) > 0
 
   const handleClientChange = async (id: string) => {
-    setClientId(id)
+  setClientId(id)
 
-    const c = clients.find((cl) => cl.id === id)
-    const d = c ? Number(c.currentDebt || 0) : 0
-    setSelectedClientDebt(d)
+  const c = clients.find((cl) => cl.id === id)
+  const d = c ? Number(c.currentDebt || 0) : 0
+  setSelectedClientDebt(d)
 
-    // If debt: lock plan & auto-fill values
-    if (d > 0) {
-      setPlan("Pago deuda")
-      setDiscount(0)
+  // --- 1) Traer TODOS los pagos del cliente (tenga o no deuda) ---
+  let pays: PaymentRow[] = []
 
-      try {
-        const res = await fetch(`/api/payments?clientId=${id}`)
-        if (res.ok) {
-          const pays: PaymentRow[] = await res.json()
-          const withDebt = pays.filter((p) => Number(p.debt || 0) > 0)
-          const lastDebt = withDebt.sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          )[0]
+  try {
+    const res = await fetch(`/api/payments?clientId=${id}`)
+    if (res.ok) {
+      pays = await res.json()
+    }
+  } catch (e) {
+    console.log("No pude cargar pagos del cliente:", e)
+  }
 
-          if (lastDebt?.period_from && lastDebt?.period_to) {
-            const from = parseISO(lastDebt.period_from)
-            const to = parseISO(lastDebt.period_to)
+    // --- 2) Construir markers para el calendario ---
+  const nextMarkers: Record<string, "paid" | "debt"> = {}
 
-            setDateRange({ from, to })
-            setCalendarLocked(true)
+  pays.forEach((p) => {
+    if (!p.period_from || !p.period_to) return
 
-            // amount should start as full debt (then discount reduces it)
-            setAmount(d)
-            setDebt(0)
-            return
-          }
-        }
-      } catch (e) {
-        console.log("No pude cargar rango deuda previa:", e)
-      }
+    const from = new Date(p.period_from + "T00:00:00")
+    const to = new Date(p.period_to + "T00:00:00")
 
-      // fallback if no debt period found
-      setCalendarLocked(false)
-      setDateRange({})
-      setAmount(d)
-      setDebt(0)
-    } else {
-      // no debt: unlock everything
-      setCalendarLocked(false)
-      setPlan("")
-      setAmount("")
-      setDiscount("")
-      setDebt("")
-      setDateRange({})
+    for (let t = new Date(from); t <= to; t.setDate(t.getDate() + 1)) {
+      const key = t.toISOString().slice(0, 10)
+      nextMarkers[key] = Number(p.debt || 0) > 0 ? "debt" : "paid"
+    }
+  })
+
+  // 👉 Si la deuda actual del cliente es 0, todos los días pasan a "paid" (verde)
+  if (d === 0) {
+    for (const key in nextMarkers) {
+      nextMarkers[key] = "paid"
     }
   }
+
+  setMarkers(nextMarkers)
+
+
+  // --- 3) Lógica de deuda / bloqueo de calendario ---
+  if (d > 0) {
+    setPlan("Pago deuda")
+    setDiscount(0)
+
+    const withDebt = pays.filter((p) => Number(p.debt || 0) > 0)
+    const lastDebt = withDebt.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0]
+
+    if (lastDebt?.period_from && lastDebt?.period_to) {
+      const from = parseISO(lastDebt.period_from)
+      const to = parseISO(lastDebt.period_to)
+
+      setDateRange({ from, to })
+      setCalendarLocked(true)
+
+      setAmount(d)
+      setDebt(0)
+      return
+    }
+
+    // fallback si hay deuda pero no encontramos período
+    setCalendarLocked(false)
+    setDateRange({})
+    setAmount(d)
+    setDebt(0)
+  } else {
+    // no hay deuda: todo editable, sin rango preseleccionado
+    setCalendarLocked(false)
+    setPlan("")
+    setAmount("")
+    setDiscount("")
+    setDebt("")
+    setDateRange({})
+  }
+}
+
 
   const handlePlanChange = (value: PlanType) => {
     if (hasDebt) return // locked
@@ -242,9 +273,8 @@ export default function NewPaymentModal({
                 Plan
               </label>
               <select
-                className={`w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                  hasDebt ? "opacity-70 cursor-not-allowed" : ""
-                }`}
+                className={`w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${hasDebt ? "opacity-70 cursor-not-allowed" : ""
+                  }`}
                 value={plan}
                 onChange={(e) =>
                   handlePlanChange(e.target.value as PlanType)
@@ -333,7 +363,9 @@ export default function NewPaymentModal({
             onChange={setDateRange}
             disabled={calendarLocked}
             numberOfMonths={2}
+            markers={markers}
           />
+
 
           <p className="mt-4 text-sm text-slate-700">{rangeLabel}</p>
 

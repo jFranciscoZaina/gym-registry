@@ -1,4 +1,6 @@
 import type { ClientRow } from "../page"
+import { formatDateEs } from "@/lib/utils"
+
 
 export default function ClientsTable({
   clients,
@@ -110,9 +112,7 @@ export default function ClientsTable({
                 </td>
 
                 <td className="py-3 px-4">
-                  {client.nextDue
-                    ? new Date(client.nextDue).toLocaleDateString("es-AR")
-                    : "—"}
+                  {formatDateEs(client.nextDue)}
                 </td>
 
                 <td className="py-3 px-4">

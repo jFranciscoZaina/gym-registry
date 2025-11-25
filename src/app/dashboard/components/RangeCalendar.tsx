@@ -13,6 +13,8 @@ type Props = {
   disabled?: boolean
   numberOfMonths?: 1 | 2
   className?: string
+  // YYYY-MM-DD -> estado del día
+  markers?: Record<string, "paid" | "debt">
 }
 
 const WEEK_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -78,6 +80,7 @@ export default function RangeCalendar({
   disabled = false,
   numberOfMonths = 2,
   className = "",
+  markers = {},
 }: Props) {
   const [baseMonth, setBaseMonth] = useState<Date>(() => {
     return value.from ? new Date(value.from) : new Date()
@@ -128,9 +131,16 @@ export default function RangeCalendar({
           ‹
         </button>
 
-        <div className={`grid ${numberOfMonths === 2 ? "grid-cols-2 gap-8" : ""}`}>
+        <div
+          className={`grid ${
+            numberOfMonths === 2 ? "grid-cols-2 gap-8" : ""
+          }`}
+        >
           {months.map((m) => (
-            <div key={m.toISOString()} className="text-center font-semibold text-slate-900">
+            <div
+              key={m.toISOString()}
+              className="text-center font-semibold text-slate-900"
+            >
               {monthLabel(m)}
             </div>
           ))}
@@ -156,7 +166,9 @@ export default function RangeCalendar({
               {/* week header */}
               <div className="grid grid-cols-7 text-center text-sm text-slate-500 mb-2">
                 {WEEK_DAYS.map((w) => (
-                  <div key={w} className="py-1">{w}</div>
+                  <div key={w} className="py-1">
+                    {w}
+                  </div>
                 ))}
               </div>
 
@@ -176,6 +188,9 @@ export default function RangeCalendar({
                       const isInside = inRange(d0, value.from, value.to)
                       const isEdge = isFrom || isTo
 
+                      const dateKey = d0.toISOString().slice(0, 10)
+                      const marker = markers[dateKey]
+
                       return (
                         <button
                           type="button"
@@ -183,13 +198,26 @@ export default function RangeCalendar({
                           onClick={() => handleDayClick(d0)}
                           disabled={disabled}
                           className={[
-                            "h-9 w-9 rounded-full text-sm flex items-center justify-center transition",
-                            disabled ? "cursor-not-allowed opacity-70" : "hover:bg-slate-200",
+                            "h-9 w-9 rounded-full text-sm flex flex-col items-center justify-center transition",
+                            disabled
+                              ? "cursor-not-allowed opacity-70"
+                              : "hover:bg-slate-200",
                             isInside && !isEdge ? "bg-slate-200" : "",
                             isEdge ? "bg-black text-white" : "text-slate-900",
                           ].join(" ")}
                         >
-                          {d0.getDate()}
+                          <span>{d0.getDate()}</span>
+
+                          {marker && (
+                            <span
+                              className={[
+                                "mt-0.5 h-1 w-1 rounded-full",
+                                marker === "paid"
+                                  ? "bg-green-700"
+                                  : "bg-yellow-400",
+                              ].join(" ")}
+                            />
+                          )}
                         </button>
                       )
                     })}
