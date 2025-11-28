@@ -19,6 +19,16 @@ type Props = {
 
 const WEEK_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
+function isToday(d: Date) {
+  const t = new Date()
+  return (
+    d.getFullYear() === t.getFullYear() &&
+    d.getMonth() === t.getMonth() &&
+    d.getDate() === t.getDate()
+  )
+}
+
+
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
@@ -132,9 +142,8 @@ export default function RangeCalendar({
         </button>
 
         <div
-          className={`grid ${
-            numberOfMonths === 2 ? "grid-cols-2 gap-8" : ""
-          }`}
+          className={`grid ${numberOfMonths === 2 ? "grid-cols-2 gap-8" : ""
+            }`}
         >
           {months.map((m) => (
             <div
@@ -206,7 +215,16 @@ export default function RangeCalendar({
                             isEdge ? "bg-black text-white" : "text-slate-900",
                           ].join(" ")}
                         >
-                          <span>{d0.getDate()}</span>
+                          <span
+                            className={[
+                              isEdge ? "text-white" : "text-slate-900",
+                              isToday(d0) ? "font-semibold" : "",
+                            ].join(" ")}
+                          >
+                            {d0.getDate()}
+                          </span>
+
+
 
                           {marker && (
                             <span

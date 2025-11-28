@@ -198,9 +198,9 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setStatus("active")}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition ${status === "active"
-                  ? "bg-slate-900 text-white shadow-md"
-                  : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
+              className={`px-5 py-2 text-sm font-medium transition ${status === "active"
+                ? " text-black border-b-2 border-black"
+                : "text-slate-700 border-slate-300 hover:bg-slate-100"
                 }`}
             >
               Activos
@@ -208,9 +208,9 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setStatus("inactive")}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition ${status === "inactive"
-                  ? "bg-slate-900 text-white shadow-md"
-                  : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-100"
+              className={`px-5 py-2 text-sm font-medium transition ${status === "inactive"
+                ? " text-black border-b-2 border-black"
+                : " text-slate-700 border-slate-300 hover:bg-slate-100"
                 }`}
             >
               Inactivos
@@ -223,7 +223,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Paginador simple */}
-          <div className="flex items-center gap-4 text-sm text-slate-600">
+          <div className="flex items-center gap-4 text-sm text-slate-600 font-medium">
 
             {/* Selector de cantidad */}
             <select
@@ -238,10 +238,10 @@ export default function DashboardPage() {
 
             <span>1 - 50 de {clients.length}</span>
 
-            <button className="p-1 hover:bg-slate-200 rounded-md">
+            <button className="p-2 hover:bg-slate-200 rounded-md">
               ‹
             </button>
-            <button className="p-1 hover:bg-slate-200 rounded-md">
+            <button className="p-2 hover:bg-slate-200 rounded-md">
               ›
             </button>
           </div>

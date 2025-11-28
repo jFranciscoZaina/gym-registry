@@ -1,7 +1,6 @@
 import type { ClientRow } from "../page"
 import { formatDateEs } from "@/lib/utils"
 
-
 export default function ClientsTable({
   clients,
   loading,
@@ -20,53 +19,73 @@ export default function ClientsTable({
   onOpenDetail: (client: ClientRow) => void
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
-      <table className="min-w-full">
-        <thead className="bg-slate-100 text-xs uppercase text-slate-500">
+    <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      <table className="min-w-full table-auto">
+        {/* HEADER */}
+        <thead className="border-b border-slate-200 bg-white text-sm font-medium text-slate-600">
           <tr>
             <th
-              className="py-2 px-4 text-left cursor-pointer select-none"
+              className="cursor-pointer select-none px-6 py-4 text-left"
               onClick={() => onToggleSort("name")}
             >
-              Persona {sortKey === "name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              Persona{" "}
+              <span className="text-xs font-normal">
+                {sortKey === "name" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </span>
             </th>
 
             <th
-              className="py-2 px-4 text-left cursor-pointer select-none"
+              className="cursor-pointer select-none px-6 py-4 text-left"
               onClick={() => onToggleSort("plan")}
             >
-              Plan {sortKey === "plan" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              Plan{" "}
+              <span className="text-xs font-normal">
+                {sortKey === "plan" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </span>
             </th>
 
             <th
-              className="py-2 px-4 text-center cursor-pointer select-none"
+              className="cursor-pointer select-none px-6 py-4 text-center"
               onClick={() => onToggleSort("paid")}
             >
-              Pago {sortKey === "paid" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              Pago{" "}
+              <span className="text-xs font-normal">
+                {sortKey === "paid" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </span>
             </th>
 
             <th
-              className="py-2 px-4 text-left cursor-pointer select-none"
+              className="cursor-pointer select-none px-6 py-4 text-left"
               onClick={() => onToggleSort("debt")}
             >
-              Deuda {sortKey === "debt" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              Deuda{" "}
+              <span className="text-xs font-normal">
+                {sortKey === "debt" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </span>
             </th>
 
             <th
-              className="py-2 px-4 text-left cursor-pointer select-none"
+              className="cursor-pointer select-none px-6 py-4 text-left"
               onClick={() => onToggleSort("due")}
             >
-              Vencimientos {sortKey === "due" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              Vencimientos{" "}
+              <span className="text-xs font-normal">
+                {sortKey === "due" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+              </span>
             </th>
 
-            <th className="py-2 px-4 text-left">Detalle</th>
+            <th className="px-6 py-4 text-left">Detalle</th>
           </tr>
         </thead>
 
-        <tbody>
+        {/* BODY */}
+        <tbody className="bg-white text-base text-slate-800">
           {loading && (
             <tr>
-              <td colSpan={6} className="py-6 px-4 text-center text-sm text-slate-500">
+              <td
+                colSpan={6}
+                className="px-6 py-6 text-center text-sm text-slate-500"
+              >
                 Cargando clientes...
               </td>
             </tr>
@@ -74,7 +93,10 @@ export default function ClientsTable({
 
           {!loading && error && (
             <tr>
-              <td colSpan={6} className="py-6 px-4 text-center text-sm text-red-500">
+              <td
+                colSpan={6}
+                className="px-6 py-6 text-center text-sm text-red-500"
+              >
                 {error}
               </td>
             </tr>
@@ -82,7 +104,10 @@ export default function ClientsTable({
 
           {!loading && !error && clients.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-6 px-4 text-center text-sm text-slate-500">
+              <td
+                colSpan={6}
+                className="px-6 py-6 text-center text-sm text-slate-500"
+              >
                 No hay clientes aún
               </td>
             </tr>
@@ -91,18 +116,27 @@ export default function ClientsTable({
           {!loading &&
             !error &&
             clients.map((client) => (
-              <tr key={client.id} className="border-t text-sm text-slate-700">
-                <td className="py-3 px-4">{client.name}</td>
+              <tr
+                key={client.id}
+                className="border-b border-slate-200 text-sm text-slate-700 transition hover:bg-slate-50"
+              >
+                <td className="px-6 py-4 text-base">{client.name}</td>
 
-                <td className="py-3 px-4">
-                  {client.currentPlan ?? <span className="text-slate-400">Sin plan</span>}
+                <td className="px-6 py-4 text-base">
+                  {client.currentPlan ?? (
+                    <span className="text-slate-400">Sin plan</span>
+                  )}
                 </td>
 
-                <td className="py-3 px-4 text-center">
-                  {client.isMonthFullyPaid ? "✔️" : "❌"}
+                <td className="px-6 py-4 text-center">
+                  {client.isMonthFullyPaid ? (
+                    <span className="text-xl text-green-600">✔</span>
+                  ) : (
+                    <span className="text-xl text-red-500">✕</span>
+                  )}
                 </td>
 
-                <td className="py-3 px-4">
+                <td className="px-6 py-4 text-base">
                   {client.currentDebt > 0
                     ? "$" +
                       client.currentDebt.toLocaleString("es-AR", {
@@ -111,13 +145,13 @@ export default function ClientsTable({
                     : "—"}
                 </td>
 
-                <td className="py-3 px-4">
+                <td className="px-6 py-4 text-base">
                   {formatDateEs(client.nextDue)}
                 </td>
 
-                <td className="py-3 px-4">
+                <td className="px-6 py-4">
                   <button
-                    className="text-blue-600 hover:underline"
+                    className="text-sm text-slate-500 underline underline-offset-2 hover:text-slate-800"
                     onClick={() => onOpenDetail(client)}
                   >
                     Detalle
