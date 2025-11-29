@@ -1,4 +1,3 @@
-// src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import bcrypt from "bcryptjs"
@@ -6,12 +5,15 @@ import jwt from "jsonwebtoken"
 
 export const runtime = "nodejs"
 
-const JWT_SECRET = process.env.JWT_SECRET
-const JWT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7 // 7 días
+// Lo tipamos explícitamente como string
+const rawJwtSecret = process.env.JWT_SECRET
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET no está definido en .env.local")
+if (!rawJwtSecret) {
+  throw new Error("JWT_SECRET no está definido en .env")
 }
+
+const JWT_SECRET: string = rawJwtSecret
+const JWT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7 // 7 días
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +41,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verificar contraseña
     const isValid = await bcrypt.compare(password, data.password_hash)
 
     if (!isValid) {
@@ -49,13 +50,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Crear token
     const token = jwt.sign(
       {
         gymId: data.id,
         email: data.email,
       },
-      JWT_SECRET,
+      JWT_SECRET, // ahora es string, TS feliz
       { expiresIn: JWT_EXPIRES_IN_SECONDS }
     )
 
@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     )
 
-    // Guardar cookie de sesión
     res.cookies.set("session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

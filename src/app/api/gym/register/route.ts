@@ -1,4 +1,3 @@
-// src/app/api/gym/register/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
 import bcrypt from "bcryptjs"
@@ -6,12 +5,14 @@ import jwt from "jsonwebtoken"
 
 export const runtime = "nodejs"
 
-const JWT_SECRET = process.env.JWT_SECRET
-const JWT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7 // 7 días
+const rawJwtSecret = process.env.JWT_SECRET
 
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET no está definido en .env.local")
+if (!rawJwtSecret) {
+  throw new Error("JWT_SECRET no está definido en .env")
 }
+
+const JWT_SECRET: string = rawJwtSecret
+const JWT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7 // 7 días
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,10 +25,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Hashear password
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Crear gym
     const { data, error } = await supabase
       .from("gyms")
       .insert([
@@ -42,7 +41,6 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("Supabase gyms insert error:", error)
-      // error.code === "23505" suele ser UNIQUE violation (email repetido)
       const message =
         (error as any).code === "23505"
           ? "Ya existe un gym con ese email"
@@ -54,7 +52,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Crear JWT de sesión
     const token = jwt.sign(
       {
         gymId: data.id,
@@ -73,7 +70,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     )
 
-    // Setear cookie httpOnly
     res.cookies.set("session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
