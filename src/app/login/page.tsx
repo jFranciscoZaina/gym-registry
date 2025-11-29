@@ -1,0 +1,104 @@
+// src/app/login/page.tsx
+"use client"
+
+import React, { useState } from "react"
+import { useRouter } from "next/navigation"
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data?.error || "Error al iniciar sesión")
+        setLoading(false)
+        return
+      }
+
+      // Si todo ok, redirigir al dashboard
+      router.push("/dashboard")
+    } catch (err) {
+      console.error(err)
+      setError("Error inesperado, intentá de nuevo")
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-200 px-4">
+      <div className="w-full max-w-md rounded-3xl bg-white shadow-xl border border-slate-100 p-8">
+        <h1 className="text-xl font-semibold text-slate-900 mb-1">
+          Energym – Login
+        </h1>
+        <p className="text-sm text-slate-500 mb-6">
+          Inicia sesión con la cuenta de tu gimnasio para ver tus clientes y pagos.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/50"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/50"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-full bg-slate-900 text-white text-sm font-medium py-2.5 mt-2 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Ingresando..." : "Iniciar sesión"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-[11px] text-slate-400">
+          Si todavía no tenés cuenta de gimnasio, creala vía API por ahora
+          (después hacemos el registro desde UI).
+        </p>
+      </div>
+    </div>
+  )
+}

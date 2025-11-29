@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import TopBar from "./components/TopBar" // <- si después no lo usamos, lo podés borrar
+import TopBar from "./components/TopBar" 
 import SearchBar from "./components/SearchBar"
 import StatsGrid from "./components/StatsGrid"
 import ClientsTable from "./components/ClientsTable"
@@ -80,7 +80,17 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       const res = await fetch(`/api/clients?status=${status}`)
+
+      if (res.status === 401) {
+        // sin sesión -> mandamos al login
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"
+        }
+        return
+      }
+
       if (!res.ok) throw new Error("Error cargando clientes")
+
       const data: ClientRow[] = await res.json()
       setClients(data)
       setError(null)
@@ -158,33 +168,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-200 flex items-stretch justify-center px-4 py-8">
       {/* CONTENEDOR PRINCIPAL (la “card grande” del prototipo) */}
       <div className="w-full max-w-550 rounded-3xl bg-gradient-to-br from-slate-100 via-amber-50/40 to-slate-100 shadow-xl border border-white/60 relative overflow-hidden">
-        {/* HEADER: nombre del gym + acciones */}
-        <header className="flex items-center justify-between px-8 pt-6 pb-4">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-lg font-semibold text-slate-900">
-              Energym
-            </h1>
-            <span className="h-5 w-px bg-slate-300" />
-            <span className="text-xs uppercase tracking-wide text-slate-500">
-              dashboard
-            </span>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => openNewPayment()}
-              className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800"
-            >
-              Registrar pago
-            </button>
-            <button
-              onClick={() => setShowNewClient(true)}
-              className="rounded-full bg-white/90 px-5 py-2 text-sm font-medium text-slate-900 border border-slate-200 hover:bg-white"
-            >
-              Agregar cliente
-            </button>
-          </div>
-        </header>
+        
+        {/* HEADER: Extraído al componente TopBar */}
+        <TopBar 
+          onNewPayment={() => openNewPayment()} 
+          onNewClient={() => setShowNewClient(true)} 
+        />
 
         {/* STATS */}
         <section className="px-8 pb-4">

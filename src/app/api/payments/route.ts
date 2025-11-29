@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
+import { getSessionGymId } from "@/lib/auth"
+
+export const runtime = "nodejs"
 
 // GET /api/payments?clientId=uuid
 export async function GET(req: NextRequest) {
   try {
+    const gymId = getSessionGymId(req)
+
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get("clientId")
 
@@ -28,6 +40,7 @@ export async function GET(req: NextRequest) {
         created_at
       `)
       .eq("client_id", clientId)
+      .eq("gym_id", gymId)
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -51,6 +64,15 @@ export async function GET(req: NextRequest) {
 // POST /api/payments
 export async function POST(req: NextRequest) {
   try {
+    const gymId = getSessionGymId(req)
+
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
     const body = await req.json()
     const {
       clientId,
@@ -73,12 +95,13 @@ export async function POST(req: NextRequest) {
     const numericDiscount = Number(discount || 0)
     const numericDebt = Number(debt || 0)
 
-    // Insert payment
+    // Insert payment (ahora atado al gym)
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert([
         {
           client_id: clientId,
+          gym_id: gymId,
           amount: numericAmount,
           plan,
           discount: numericDiscount,
@@ -109,6 +132,7 @@ export async function POST(req: NextRequest) {
         next_payment_date: periodTo ?? null,
       })
       .eq("id", clientId)
+      .eq("gym_id", gymId)
 
     if (clientError) {
       console.error("Supabase updating client after payment:", clientError)

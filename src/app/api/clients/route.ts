@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabaseClient"
+import { getSessionGymId } from "@/lib/auth"
+
+export const runtime = "nodejs"
 
 // -----------------------------------------------------------------------------
-// GET – Lista clientes con filtro active/inactive
+// GET – Lista clientes con filtro active/inactive (para el gym logueado)
 // -----------------------------------------------------------------------------
 const INACTIVE_AFTER_DAYS = 45
 
 export async function GET(req: NextRequest) {
   try {
+    const gymId = getSessionGymId(req)
+
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
     const statusParam = req.nextUrl.searchParams.get("status") // active | inactive | null
 
     const { data, error } = await supabase
@@ -36,6 +48,7 @@ export async function GET(req: NextRequest) {
           created_at
         )
       `)
+      .eq("gym_id", gymId)
       .order("created_at", { ascending: true })
 
     if (error) {
@@ -115,10 +128,19 @@ export async function GET(req: NextRequest) {
 }
 
 // -----------------------------------------------------------------------------
-// POST – Crear cliente
+// POST – Crear cliente para el gym logueado
 // -----------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
+    const gymId = getSessionGymId(req)
+
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
     const { name, email, phone, address, addressNumber } = await req.json()
 
     const { data, error } = await supabase
@@ -130,6 +152,7 @@ export async function POST(req: NextRequest) {
           phone,
           address,
           address_number: addressNumber,
+          gym_id: gymId,
         },
       ])
       .select()
