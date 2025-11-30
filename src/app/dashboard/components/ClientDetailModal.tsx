@@ -3,6 +3,18 @@
 import React, { useEffect, useState } from "react"
 import type { ClientRow, Payment } from "../page"
 
+// Podés mover este type a ../page si querés centralizarlo
+type EmailLog = {
+  id: string
+  sent_at: string
+  type: string
+  subject: string
+  due_date: string | null
+  status: string
+}
+
+type TabId = "data" | "payments" | "emails"
+
 export default function ClientDetailModal({
   client,
   onClose,
@@ -18,15 +30,27 @@ export default function ClientDetailModal({
   const [email, setEmail] = useState(client.email ?? "")
   const [phone, setPhone] = useState(client.phone ?? "")
   const [address, setAddress] = useState(client.address ?? "")
-  const [addressNumber, setAddressNumber] = useState(client.addressNumber ?? "")
+  const [addressNumber, setAddressNumber] = useState(
+    client.addressNumber ?? ""
+  )
+
+  const [activeTab, setActiveTab] = useState<TabId>("data")
 
   const [payments, setPayments] = useState<Payment[]>([])
-  const [loadingPayments, setLoadingPayments] = useState(true)
+  const [loadingPayments, setLoadingPayments] = useState(false)
+  const [paymentsLoaded, setPaymentsLoaded] = useState(false)
+
+  const [emails, setEmails] = useState<EmailLog[]>([])
+  const [loadingEmails, setLoadingEmails] = useState(false)
+  const [emailsLoaded, setEmailsLoaded] = useState(false)
+
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  // === Load payment history ==========================================
+  // === Load payment history (lazy por tab) ==========================
   useEffect(() => {
+    if (activeTab !== "payments" || paymentsLoaded) return
+
     const loadPayments = async () => {
       setLoadingPayments(true)
       try {
@@ -40,6 +64,7 @@ export default function ClientDetailModal({
 
         const data: Payment[] = await res.json()
         setPayments(data)
+        setPaymentsLoaded(true)
       } catch (e) {
         console.error(e)
       } finally {
@@ -48,7 +73,34 @@ export default function ClientDetailModal({
     }
 
     loadPayments()
-  }, [client.id])
+  }, [activeTab, paymentsLoaded, client.id])
+
+  // === Load email history (lazy por tab) ============================
+  useEffect(() => {
+  const loadEmails = async () => {
+    setLoadingEmails(true)
+    try {
+      const res = await fetch(`/api/clients/emails?clientId=${client.id}`)
+
+      if (!res.ok) {
+        const txt = await res.text()
+        console.error("Emails fetch failed:", res.status, txt)
+        throw new Error("Error cargando historial de emails")
+      }
+
+      const data: EmailLog[] = await res.json()
+      setEmails(data)
+    } catch (e) {
+      console.error(e)
+      alert(e instanceof Error ? e.message : "Error cargando historial de emails")
+    } finally {
+      setLoadingEmails(false)
+    }
+  }
+
+  loadEmails()
+}, [client.id])
+
 
   // === Save changes ===================================================
   const handleSave = async () => {
@@ -97,7 +149,7 @@ export default function ClientDetailModal({
   }
 
   // ====================================================================
-  // === RENDER ==========================================================
+  // === RENDER =========================================================
   // ====================================================================
   return (
     <div className="space-y-5 text-sm p-6">
@@ -128,143 +180,230 @@ export default function ClientDetailModal({
         </div>
       </div>
 
-      {/* Form fields */}
-      <div className="rounded-md border bg-slate-50 p-3 space-y-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium">
-            Nombre (no editable)
-          </label>
-          <input
-            value={client.name}
-            readOnly
-            className="w-full rounded-md border bg-slate-100 px-3 py-2 text-sm text-slate-700"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium">Email</label>
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium">
-            Número de teléfono
-          </label>
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium">Domicilio</label>
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium">
-            Número / piso / depto
-          </label>
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            value={addressNumber}
-            onChange={(e) => setAddressNumber(e.target.value)}
-          />
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            disabled={saving}
-          >
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </button>
-        </div>
+      {/* Tabs */}
+      <div className="border-b flex gap-6 text-sm font-medium">
+        <button
+          type="button"
+          onClick={() => setActiveTab("data")}
+          className={`pb-2 -mb-px border-b-2 ${
+            activeTab === "data"
+              ? "border-slate-900 text-slate-900"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Datos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("payments")}
+          className={`pb-2 -mb-px border-b-2 ${
+            activeTab === "payments"
+              ? "border-slate-900 text-slate-900"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Historial de Pagos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("emails")}
+          className={`pb-2 -mb-px border-b-2 ${
+            activeTab === "emails"
+              ? "border-slate-900 text-slate-900"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Historial de emails
+        </button>
       </div>
 
-      {/* Historial */}
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Historial de pagos</h3>
+      {/* TAB: Datos */}
+      {activeTab === "data" && (
+        <div className="rounded-md border bg-slate-50 p-3 space-y-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium">
+              Nombre (no editable)
+            </label>
+            <input
+              value={client.name}
+              readOnly
+              className="w-full rounded-md border bg-slate-100 px-3 py-2 text-sm text-slate-700"
+            />
+          </div>
 
-        <div className="max-h-64 overflow-auto rounded-md border">
-          {loadingPayments ? (
-            <div className="p-4 text-xs text-slate-500">
-              Cargando historial...
-            </div>
-          ) : payments.length === 0 ? (
-            <div className="p-4 text-xs text-slate-500">
-              Este cliente aún no tiene pagos registrados.
-            </div>
-          ) : (
-            <table className="min-w-full text-xs">
-              <thead className="bg-slate-100 text-slate-500">
-                <tr>
-                  <th className="py-2 px-2 text-left">Fecha</th>
-                  <th className="py-2 px-2 text-left">Plan</th>
-                  <th className="py-2 px-2 text-right">Pago</th>
-                  <th className="py-2 px-2 text-right">Bonificación</th>
-                  <th className="py-2 px-2 text-right">Deuda</th>
-                  <th className="py-2 px-2 text-left">Desde</th>
-                  <th className="py-2 px-2 text-left">Hasta</th>
-                </tr>
-              </thead>
+          <div>
+            <label className="mb-1 block text-xs font-medium">Email</label>
+            <input
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-              <tbody>
-                {payments.map((p) => (
-                  <tr key={p.id} className="border-t">
-                    <td className="py-2 px-2">
-                      {new Date(p.created_at).toLocaleDateString("es-AR")}
-                    </td>
-                    <td className="py-2 px-2">{p.plan ?? "—"}</td>
-                    <td className="py-2 px-2 text-right">
-                      {"$" +
-                        (p.amount ?? 0).toLocaleString("es-AR", {
-                          maximumFractionDigits: 0,
-                        })}
-                    </td>
-                    <td className="py-2 px-2 text-right">
-                      {p.discount != null && p.discount > 0
-                        ? "$" +
-                          p.discount.toLocaleString("es-AR", {
-                            maximumFractionDigits: 0,
-                          })
-                        : "—"}
-                    </td>
-                    <td className="py-2 px-2 text-right">
-                      {p.debt != null
-                        ? "$" +
-                          p.debt.toLocaleString("es-AR", {
-                            maximumFractionDigits: 0,
-                          })
-                        : "—"}
-                    </td>
-                    <td className="py-2 px-2">
-                      {p.period_from
-                        ? new Date(p.period_from).toLocaleDateString("es-AR")
-                        : "—"}
-                    </td>
-                    <td className="py-2 px-2">
-                      {p.period_to
-                        ? new Date(p.period_to).toLocaleDateString("es-AR")
-                        : "—"}
-                    </td>
+          <div>
+            <label className="mb-1 block text-xs font-medium">
+              Número de teléfono
+            </label>
+            <input
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium">Domicilio</label>
+            <input
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium">
+              Número / piso / depto
+            </label>
+            <input
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              value={addressNumber}
+              onChange={(e) => setAddressNumber(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              disabled={saving}
+            >
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Historial de Pagos */}
+      {activeTab === "payments" && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Historial de pagos</h3>
+
+          <div className="max-h-64 overflow-auto rounded-md border">
+            {loadingPayments ? (
+              <div className="p-4 text-xs text-slate-500">
+                Cargando historial...
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="p-4 text-xs text-slate-500">
+                Este cliente aún no tiene pagos registrados.
+              </div>
+            ) : (
+              <table className="min-w-full text-xs">
+                <thead className="bg-slate-100 text-slate-500">
+                  <tr>
+                    <th className="py-2 px-2 text-left">Fecha</th>
+                    <th className="py-2 px-2 text-left">Plan</th>
+                    <th className="py-2 px-2 text-right">Pago</th>
+                    <th className="py-2 px-2 text-right">Bonificación</th>
+                    <th className="py-2 px-2 text-right">Deuda</th>
+                    <th className="py-2 px-2 text-left">Desde</th>
+                    <th className="py-2 px-2 text-left">Hasta</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+
+                <tbody>
+                  {payments.map((p) => (
+                    <tr key={p.id} className="border-t">
+                      <td className="py-2 px-2">
+                        {new Date(p.created_at).toLocaleDateString("es-AR")}
+                      </td>
+                      <td className="py-2 px-2">{p.plan ?? "—"}</td>
+                      <td className="py-2 px-2 text-right">
+                        {"$" +
+                          (p.amount ?? 0).toLocaleString("es-AR", {
+                            maximumFractionDigits: 0,
+                          })}
+                      </td>
+                      <td className="py-2 px-2 text-right">
+                        {p.discount != null && p.discount > 0
+                          ? "$" +
+                            p.discount.toLocaleString("es-AR", {
+                              maximumFractionDigits: 0,
+                            })
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-right">
+                        {p.debt != null
+                          ? "$" +
+                            p.debt.toLocaleString("es-AR", {
+                              maximumFractionDigits: 0,
+                            })
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2">
+                        {p.period_from
+                          ? new Date(p.period_from).toLocaleDateString("es-AR")
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2">
+                        {p.period_to
+                          ? new Date(p.period_to).toLocaleDateString("es-AR")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* TAB: Historial de emails */}
+      {activeTab === "emails" && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Historial de emails</h3>
+
+          <div className="max-h-64 overflow-auto rounded-md border">
+            {loadingEmails ? (
+              <div className="p-4 text-xs text-slate-500">
+                Cargando historial de emails...
+              </div>
+            ) : emails.length === 0 ? (
+              <div className="p-4 text-xs text-slate-500">
+                Todavía no se enviaron emails a este cliente.
+              </div>
+            ) : (
+              <table className="min-w-full text-xs">
+                <thead className="bg-slate-100 text-slate-500">
+                  <tr>
+                    <th className="py-2 px-2 text-left">Fecha</th>
+                    <th className="py-2 px-2 text-left">Tipo</th>
+                    <th className="py-2 px-2 text-left">Vencimiento</th>
+                    <th className="py-2 px-2 text-left">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emails.map((mail) => (
+                    <tr key={mail.id} className="border-t">
+                      <td className="py-2 px-2">
+                        {new Date(mail.sent_at).toLocaleDateString("es-AR")}
+                      </td>
+                      <td className="py-2 px-2">{mail.type}</td>
+                      <td className="py-2 px-2">
+                        {mail.due_date
+                          ? new Date(mail.due_date).toLocaleDateString("es-AR")
+                          : "—"}
+                      </td>
+                      <td className="py-2 px-2">{mail.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
