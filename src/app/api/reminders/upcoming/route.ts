@@ -10,13 +10,14 @@ function formatDateDDMMYYYY(d: Date) {
   return `${day}/${month}/${year}`
 }
 
-// Endpoint para enviar recordatorios a clientes cuya cuota vence en 5 días.
-// En producción esto lo dispara un CRON, no el usuario final.
-export async function POST(req: NextRequest) {
-  // 🔐 Proteger endpoint para que solo lo llame el cron de Vercel
-  const auth = req.headers.get("authorization")
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized cron" }, { status: 401 })
+// Lógica compartida para GET (cron) y POST (tests manuales)
+async function handleUpcomingReminders(req: NextRequest) {
+  // 🔐 Solo exigir el header en producción
+  if (process.env.VERCEL_ENV === "production") {
+    const auth = req.headers.get("authorization")
+    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized cron" }, { status: 401 })
+    }
   }
 
   try {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const results: { clientId: string; email: string; status: string }[] = []
-    const gymName = "Tu gimnasio" // por ahora genérico
+    const gymName = "Tu gimnasio" // MVP
 
     for (const client of clients as any[]) {
       const clientEmail = client.email as string
@@ -98,4 +99,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// 👉 cron de Vercel usa GET
+export async function GET(req: NextRequest) {
+  return handleUpcomingReminders(req)
+}
+
+// 👉 para testear desde consola con fetch POST
+export async function POST(req: NextRequest) {
+  return handleUpcomingReminders(req)
 }
