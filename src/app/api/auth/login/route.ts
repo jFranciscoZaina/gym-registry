@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     // Buscar gym por email
     const { data, error } = await supabase
-      .from("gyms")
+      .from("owners")
       .select("id, name, email, password_hash")
       .eq("email", email)
       .single()
